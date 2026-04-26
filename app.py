@@ -749,7 +749,7 @@ def login():
         if user:
             session['user_id'] = user['id']
             session['user_email'] = user['email'] if user['email'] else email
-            session['user_role'] = user.get('role') or 'user'
+            session['user_role'] = user['role'] or 'user'
             log_audit_event(user['id'], 'login', 'User logged in successfully')
             flash('Logged in successfully!', 'success')
             return redirect(url_for('dashboard'))
