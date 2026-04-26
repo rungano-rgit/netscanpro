@@ -264,8 +264,19 @@ def init_db():
             else:
                 c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
             print("✅ Added role column to users table")
-            
-            # Set first user as admin
+        
+        # Ensure existing users have a role value
+        c.execute("UPDATE users SET role = 'user' WHERE role IS NULL")
+        
+        # Ensure at least one admin exists
+        if DB_BACKEND == 'postgres':
+            c.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+            admin_count = c.fetchone()['count']
+        else:
+            c.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+            admin_count = c.fetchone()[0]
+        
+        if admin_count == 0:
             if DB_BACKEND == 'postgres':
                 c.execute("SELECT id FROM users ORDER BY id LIMIT 1")
             else:
@@ -447,11 +458,14 @@ def remove_firewall_block_rule(ip_address):
 def ping_host(ip, timeout=2):
     """Ping a single IP address"""
     try:
-        param = '-n' if platform.system().lower() == 'windows' else '-c'
+        if platform.system().lower() == 'windows':
+            cmd = ['ping', '-n', '1', '-w', str(timeout * 1000), ip]
+        else:
+            cmd = ['ping', '-c', '1', '-W', str(timeout), ip]
         result = subprocess.run(
-            ['ping', param, '1', '-w', str(timeout * 1000), ip],
+            cmd,
             capture_output=True,
-            timeout=timeout + 1
+            timeout=timeout + 2
         )
         return result.returncode == 0
     except:
@@ -735,7 +749,7 @@ def login():
         if user:
             session['user_id'] = user['id']
             session['user_email'] = user['email'] if user['email'] else email
-            session['user_role'] = user['role']
+            session['user_role'] = user.get('role') or 'user'
             log_audit_event(user['id'], 'login', 'User logged in successfully')
             flash('Logged in successfully!', 'success')
             return redirect(url_for('dashboard'))
@@ -804,6 +818,9 @@ def device_manager():
 @app.route('/api/scan', methods=['POST'])
 @login_required
 def start_scan():
+    if IS_PRODUCTION and IS_RENDER:
+        return jsonify({'error': 'Network scanning is not supported from cloud hosting. Run the app locally to scan your LAN.'}), 400
+
     data = request.get_json()
     target = data.get('target')
     timeout = int(data.get('timeout', 2))
