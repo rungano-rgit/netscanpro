@@ -49,6 +49,18 @@ app.config.update(
 
 CORS(app)
 
+# Initialize database on app startup (before routes are registered)
+@app.before_request
+def init_db_on_startup():
+    """Initialize database on first request if not already done"""
+    if not hasattr(app, '_db_initialized'):
+        try:
+            safe_init_db()
+            app._db_initialized = True
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}")
+            app._db_initialized = False
+
 # Environment detection
 IS_PRODUCTION = os.getenv('FLASK_ENV') == 'production' or os.getenv('RENDER') == 'true'
 IS_RENDER = os.getenv('RENDER') == 'true'
@@ -83,6 +95,20 @@ logger = logging.getLogger('netscanpro')
 print(f"🔧 Configuration: DB_BACKEND={DB_BACKEND}, IS_PRODUCTION={IS_PRODUCTION}")
 
 # ==================== HELPER FUNCTIONS ====================
+
+def safe_init_db():
+    """Initialize database with retry logic and error handling"""
+    try:
+        init_db()
+        logger.info("✅ Database initialized successfully")
+    except Exception as e:
+        logger.error(f"❌ Database initialization failed: {e}")
+        if IS_PRODUCTION:
+            # In production, log the error but don't crash the app
+            logger.warning("App starting without database initialized - table creation will be attempted on first request")
+        else:
+            # In development, raise the error for visibility
+            raise
 
 def hash_password(password):
     """Hash password using SHA-256"""
@@ -191,171 +217,175 @@ def log_audit_event(user_id, event_type, description):
 
 def init_db():
     """Initialize all database tables with proper error handling"""
-    conn = get_db()
-    c = get_cursor(conn)
-    
-    # Users table
-    if DB_BACKEND == 'postgres':
-        c.execute('''CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            email TEXT UNIQUE,
-            username TEXT UNIQUE,
-            password TEXT NOT NULL,
-            role TEXT DEFAULT 'user',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )''')
-    else:
-        c.execute('''CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE,
-            username TEXT UNIQUE,
-            password TEXT NOT NULL,
-            role TEXT DEFAULT 'user',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )''')
-    
-    # Check and add missing columns
-    columns = get_table_columns(conn, 'users')
-    
-    if 'email' not in columns and 'username' in columns:
-        if DB_BACKEND == 'postgres':
-            c.execute("ALTER TABLE users ADD COLUMN email TEXT")
-        else:
-            c.execute("ALTER TABLE users ADD COLUMN email TEXT")
-        c.execute("UPDATE users SET email = username WHERE email IS NULL")
-        print("✅ Migrated users table: added email column")
-    elif 'email' not in columns:
-        if DB_BACKEND == 'postgres':
-            c.execute("ALTER TABLE users ADD COLUMN email TEXT")
-        else:
-            c.execute("ALTER TABLE users ADD COLUMN email TEXT")
-        print("✅ Added email column to users table")
-    
-    if 'role' not in columns:
-        if DB_BACKEND == 'postgres':
-            c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
-        else:
-            c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
-        print("✅ Added role column to users table")
+    try:
+        conn = get_db()
+        c = get_cursor(conn)
         
-        # Set first user as admin
+        # Users table
         if DB_BACKEND == 'postgres':
-            c.execute("SELECT id FROM users ORDER BY id LIMIT 1")
+            c.execute('''CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE,
+                username TEXT UNIQUE,
+                password TEXT NOT NULL,
+                role TEXT DEFAULT 'user',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )''')
         else:
-            c.execute("SELECT id FROM users ORDER BY id LIMIT 1")
-        first_user = c.fetchone()
-        if first_user:
+            c.execute('''CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE,
+                username TEXT UNIQUE,
+                password TEXT NOT NULL,
+                role TEXT DEFAULT 'user',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )''')
+        
+        # Check and add missing columns
+        columns = get_table_columns(conn, 'users')
+        
+        if 'email' not in columns and 'username' in columns:
             if DB_BACKEND == 'postgres':
-                c.execute("UPDATE users SET role = 'admin' WHERE id = %s", (first_user['id'],))
+                c.execute("ALTER TABLE users ADD COLUMN email TEXT")
             else:
-                c.execute("UPDATE users SET role = 'admin' WHERE id = ?", (first_user['id'],))
-            print("✅ Set first user as admin")
-    
-    # Scans table
-    if DB_BACKEND == 'postgres':
-        c.execute('''CREATE TABLE IF NOT EXISTS scans (
-            scan_id TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            timestamp TIMESTAMP NOT NULL,
-            target_range TEXT NOT NULL,
-            device_count INTEGER DEFAULT 0,
-            duration REAL DEFAULT 0,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )''')
-    else:
-        c.execute('''CREATE TABLE IF NOT EXISTS scans (
-            scan_id TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            timestamp TEXT NOT NULL,
-            target_range TEXT NOT NULL,
-            device_count INTEGER DEFAULT 0,
-            duration REAL DEFAULT 0,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )''')
-    
-    # Devices table
-    if DB_BACKEND == 'postgres':
-        c.execute('''CREATE TABLE IF NOT EXISTS devices (
-            id SERIAL PRIMARY KEY,
-            scan_id TEXT NOT NULL,
-            user_id INTEGER NOT NULL,
-            ip_address TEXT NOT NULL,
-            status TEXT DEFAULT 'Active',
-            response_time TEXT DEFAULT '-',
-            hostname TEXT DEFAULT 'Unknown',
-            operating_system TEXT DEFAULT 'Unknown',
-            device_status TEXT DEFAULT 'Unknown',
-            notes TEXT DEFAULT '',
-            flagged BOOLEAN DEFAULT FALSE,
-            is_blocked BOOLEAN DEFAULT FALSE,
-            blocked_at TIMESTAMP,
-            firewall_rule_name TEXT,
-            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (scan_id) REFERENCES scans(scan_id),
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )''')
-    else:
-        c.execute('''CREATE TABLE IF NOT EXISTS devices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            scan_id TEXT NOT NULL,
-            user_id INTEGER NOT NULL,
-            ip_address TEXT NOT NULL,
-            status TEXT DEFAULT 'Active',
-            response_time TEXT DEFAULT '-',
-            hostname TEXT DEFAULT 'Unknown',
-            operating_system TEXT DEFAULT 'Unknown',
-            device_status TEXT DEFAULT 'Unknown',
-            notes TEXT DEFAULT '',
-            flagged BOOLEAN DEFAULT 0,
-            is_blocked BOOLEAN DEFAULT 0,
-            blocked_at TEXT DEFAULT NULL,
-            firewall_rule_name TEXT DEFAULT NULL,
-            last_seen TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (scan_id) REFERENCES scans(scan_id),
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )''')
-    
-    # Audit logs table
-    if DB_BACKEND == 'postgres':
-        c.execute('''CREATE TABLE IF NOT EXISTS audit_logs (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER,
-            event_type TEXT NOT NULL,
-            description TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )''')
-    else:
-        c.execute('''CREATE TABLE IF NOT EXISTS audit_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            event_type TEXT NOT NULL,
-            description TEXT NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )''')
-    
-    # Create default admin user if no users exist
-    if DB_BACKEND == 'postgres':
-        c.execute("SELECT COUNT(*) FROM users")
-        count = c.fetchone()['count']
-    else:
-        c.execute("SELECT COUNT(*) FROM users")
-        count = c.fetchone()[0]
-    
-    if count == 0:
-        default_password = hash_password("admin123")
+                c.execute("ALTER TABLE users ADD COLUMN email TEXT")
+            c.execute("UPDATE users SET email = username WHERE email IS NULL")
+            print("✅ Migrated users table: added email column")
+        elif 'email' not in columns:
+            if DB_BACKEND == 'postgres':
+                c.execute("ALTER TABLE users ADD COLUMN email TEXT")
+            else:
+                c.execute("ALTER TABLE users ADD COLUMN email TEXT")
+            print("✅ Added email column to users table")
+        
+        if 'role' not in columns:
+            if DB_BACKEND == 'postgres':
+                c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
+            else:
+                c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
+            print("✅ Added role column to users table")
+            
+            # Set first user as admin
+            if DB_BACKEND == 'postgres':
+                c.execute("SELECT id FROM users ORDER BY id LIMIT 1")
+            else:
+                c.execute("SELECT id FROM users ORDER BY id LIMIT 1")
+            first_user = c.fetchone()
+            if first_user:
+                if DB_BACKEND == 'postgres':
+                    c.execute("UPDATE users SET role = 'admin' WHERE id = %s", (first_user['id'],))
+                else:
+                    c.execute("UPDATE users SET role = 'admin' WHERE id = ?", (first_user['id'],))
+                print("✅ Set first user as admin")
+        
+        # Scans table
         if DB_BACKEND == 'postgres':
-            c.execute("INSERT INTO users (email, username, password, role) VALUES (%s, %s, %s, %s)",
-                      ("admin@netscanpro.com", "admin", default_password, "admin"))
+            c.execute('''CREATE TABLE IF NOT EXISTS scans (
+                scan_id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                timestamp TIMESTAMP NOT NULL,
+                target_range TEXT NOT NULL,
+                device_count INTEGER DEFAULT 0,
+                duration REAL DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )''')
         else:
-            c.execute("INSERT INTO users (email, username, password, role) VALUES (?, ?, ?, ?)",
-                      ("admin@netscanpro.com", "admin", default_password, "admin"))
-        print("✅ Created default admin user: admin@netscanpro.com / admin123")
-    
-    conn.commit()
-    conn.close()
-    print("✅ Database initialized successfully!")
+            c.execute('''CREATE TABLE IF NOT EXISTS scans (
+                scan_id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                timestamp TEXT NOT NULL,
+                target_range TEXT NOT NULL,
+                device_count INTEGER DEFAULT 0,
+                duration REAL DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )''')
+        
+        # Devices table
+        if DB_BACKEND == 'postgres':
+            c.execute('''CREATE TABLE IF NOT EXISTS devices (
+                id SERIAL PRIMARY KEY,
+                scan_id TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                ip_address TEXT NOT NULL,
+                status TEXT DEFAULT 'Active',
+                response_time TEXT DEFAULT '-',
+                hostname TEXT DEFAULT 'Unknown',
+                operating_system TEXT DEFAULT 'Unknown',
+                device_status TEXT DEFAULT 'Unknown',
+                notes TEXT DEFAULT '',
+                flagged BOOLEAN DEFAULT FALSE,
+                is_blocked BOOLEAN DEFAULT FALSE,
+                blocked_at TIMESTAMP,
+                firewall_rule_name TEXT,
+                last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (scan_id) REFERENCES scans(scan_id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )''')
+        else:
+            c.execute('''CREATE TABLE IF NOT EXISTS devices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scan_id TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                ip_address TEXT NOT NULL,
+                status TEXT DEFAULT 'Active',
+                response_time TEXT DEFAULT '-',
+                hostname TEXT DEFAULT 'Unknown',
+                operating_system TEXT DEFAULT 'Unknown',
+                device_status TEXT DEFAULT 'Unknown',
+                notes TEXT DEFAULT '',
+                flagged BOOLEAN DEFAULT 0,
+                is_blocked BOOLEAN DEFAULT 0,
+                blocked_at TEXT DEFAULT NULL,
+                firewall_rule_name TEXT DEFAULT NULL,
+                last_seen TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (scan_id) REFERENCES scans(scan_id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )''')
+        
+        # Audit logs table
+        if DB_BACKEND == 'postgres':
+            c.execute('''CREATE TABLE IF NOT EXISTS audit_logs (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER,
+                event_type TEXT NOT NULL,
+                description TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )''')
+        else:
+            c.execute('''CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                event_type TEXT NOT NULL,
+                description TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )''')
+        
+        # Create default admin user if no users exist
+        if DB_BACKEND == 'postgres':
+            c.execute("SELECT COUNT(*) FROM users")
+            count = c.fetchone()['count']
+        else:
+            c.execute("SELECT COUNT(*) FROM users")
+            count = c.fetchone()[0]
+        
+        if count == 0:
+            default_password = hash_password("admin123")
+            if DB_BACKEND == 'postgres':
+                c.execute("INSERT INTO users (email, username, password, role) VALUES (%s, %s, %s, %s)",
+                          ("admin@netscanpro.com", "admin", default_password, "admin"))
+            else:
+                c.execute("INSERT INTO users (email, username, password, role) VALUES (?, ?, ?, ?)",
+                          ("admin@netscanpro.com", "admin", default_password, "admin"))
+            print("✅ Created default admin user: admin@netscanpro.com / admin123")
+        
+        conn.commit()
+        conn.close()
+        print("✅ Database initialized successfully!")
+    except Exception as e:
+        logger.error(f"Database initialization error: {e}")
+        raise
 
 # ==================== FIREWALL FUNCTIONS ====================
 
