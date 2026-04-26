@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetscanPro - Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 50%, #1e3a8a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Layout */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, rgba(30, 58, 138, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            border-right: 2px solid #fbbf24;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+            text-align: center;
+        }
+
+        .sidebar-logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 12px;
+            background: linear-gradient(135deg, #1e3a8a, #fbbf24, #dc2626);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 32px rgba(251, 191, 36, 0.3);
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fbbf24;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 10px;
+            color: #94a3b8;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .sidebar-nav {
+            padding: 24px 0;
+        }
+
+        .nav-item {
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+            border-left-color: #fbbf24;
+        }
+
+        .nav-item.active {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            border-left-color: #fbbf24;
+        }
+
+        .nav-icon {
+            font-size: 18px;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(90deg, rgba(30, 58, 138, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            border-bottom: 2px solid #fbbf24;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-content {
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .header-btn {
+            padding: 10px 20px;
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .header-btn:hover {
+            background: rgba(251, 191, 36, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .header-btn.active {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1e3a8a;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-left: 24px;
+            border-left: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: rgba(220, 38, 38, 0.2);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            border-radius: 8px;
+            color: #fca5a5;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(220, 38, 38, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        /* Cards */
+        .card {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            margin-bottom: 24px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .card-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #fbbf24;
+            margin: 0;
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #e2e8f0;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(251, 191, 36, 0.2);
+            border-radius: 12px;
+            color: #e2e8f0;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #fbbf24;
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+        }
+
+        .form-hint {
+            display: block;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            font-size: 14px;
+            box-shadow: 0 4px 16px rgba(30, 58, 138, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(30, 58, 138, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
+            color: #fbbf24;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(251, 191, 36, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            height: 12px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 20px;
+        }
+
+        .progress-stats {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: #fbbf24;
+            margin-bottom: 16px;
+        }
+
+        .scan-details {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            font-size: 14px;
+            color: #cbd5e1;
+        }
+
+        /* Results Table */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .results-table th {
+            text-align: left;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
+            font-weight: 600;
+            font-size: 14px;
+            color: #fbbf24;
+            border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .results-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(251, 191, 36, 0.1);
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+
+        .results-table tr:hover {
+            background: rgba(251, 191, 36, 0.05);
+        }
+
+        .status-active {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(251, 191, 36, 0.2);
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #fbbf24;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        /* Results Actions */
+        .results-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .text-center {
+            text-align: center;
+            padding: 48px;
+            color: #94a3b8;
+            font-size: 16px;
+        }
+
+        /* Help Section */
+        details {
+            margin-bottom: 16px;
+            padding: 16px;
+            background: rgba(251, 191, 36, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(251, 191, 36, 0.1);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #fbbf24;
+            font-size: 14px;
+        }
+
+        details p {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            color: #fbbf24;
+        }
+
+        /* Footer */
+        .footer {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border-top: 2px solid #fbbf24;
+            padding: 24px 32px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-link {
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: #fbbf24;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 240px;
+            }
+            .main-content {
+                margin-left: 240px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                border-right: none;
+                border-bottom: 2px solid #fbbf24;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .header-content {
+                flex-direction: column;
+                gap: 16px;
+            }
+            .content-area {
+                padding: 16px;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 58, 138, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(251, 191, 36, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(251, 191, 36, 0.5);
+        }
+    </style>
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="NetscanPro Logo" style="width: 36px; height: 36px;">
+                </div>
+                <div class="sidebar-title">NetscanPro</div>
+                <div class="sidebar-subtitle">Security Suite</div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" data-tab="scanner" onclick="showTab('scanner')">
+                    <i class="nav-icon fas fa-search"></i>
+                    Network Scanner
+                </div>
+                <div class="nav-item" onclick="window.location.href='/devices'">
+                    <i class="nav-icon fas fa-desktop"></i>
+                    Device Manager
+                </div>
+                <div class="nav-item" data-tab="history" onclick="showTab('history')">
+                    <i class="nav-icon fas fa-chart-bar"></i>
+                    Scan History
+                </div>
+                <div class="nav-item" data-tab="analytics" onclick="showTab('analytics')">
+                    <i class="nav-icon fas fa-chart-line"></i>
+                    Analytics
+                </div>
+                <div class="nav-item" data-tab="reports" onclick="showTab('reports')">
+                    <i class="nav-icon fas fa-file-alt"></i>
+                    Reports & Docs
+                </div>
+                <div class="nav-item" data-tab="settings" onclick="showTab('settings')">
+                    <i class="nav-icon fas fa-cog"></i>
+                    Settings
+                </div>
+                {% if is_admin %}
+                <div class="nav-item" data-tab="users" onclick="showTab('users')">
+                    <i class="nav-icon fas fa-users"></i>
+                    User Management
+                </div>
+                {% endif %}
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-content">
+                    <h1 class="header-title">Network Security Dashboard</h1>
+                    <div class="header-nav">
+                        <button class="header-btn active" onclick="showTab('scanner')">Scanner</button>
+                        <button class="header-btn" onclick="window.location.href='/devices'">Devices</button>
+                        <button class="header-btn" onclick="showTab('history')">History</button>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-avatar">{{ email[0].upper() }}</div>
+                        <span style="color: #e2e8f0; font-size: 14px;">{{ email }}</span>
+                        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                    </div>
+                </div>
+            </header>
+
+            <div id="notification-panel" class="notification-panel hidden"></div>
+
+            <!-- Content Area -->
+            <main class="content-area">
+                <!-- Scanner Tab -->
+                <div id="scanner-tab">
+                    <!-- Scan Configuration Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Network Scan Configuration</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>Target IP Range</label>
+                                <input type="text" id="target-input" class="form-input"
+                                       placeholder="e.g., 192.168.1.0/24 or 10.0.0.0/24"
+                                       value="10.166.37.0/27">
+                                <span class="form-hint">Use CIDR notation (e.g., 192.168.1.0/24) for network ranges.</span>
+                            </div>
+                            <div class="form-group">
+                                <label>Scan Timeout (seconds)</label>
+                                <input type="number" id="timeout" class="form-input" value="2" min="1" max="5">
+                                <span class="form-hint">Higher timeout gives more reliable results on slower or busy networks.</span>
+                            </div>
+                            <div class="form-group">
+                                <label>Scan Mode</label>
+                                <select id="scan-mode" class="form-input">
+                                    <option value="ping">Ping Sweep</option>
+                                    <option value="tcp">TCP Connect</option>
+                                    <option value="arp">ARP Discovery</option>
+                                </select>
+                                <span class="form-hint">Select the scan strategy that best fits your network environment.</span>
+                            </div>
+                            <div class="form-group">
+                                <label>Port Range (optional)</label>
+                                <input type="text" id="port-range" class="form-input"
+                                       placeholder="e.g., 1-1024 or 80,443"
+                                       value="">
+                                <span class="form-hint">Specify ports for TCP mode, or leave blank for default discovery.</span>
+                            </div>
+                            <button id="start-scan-btn" class="btn-primary">Start Network Scan</button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Card -->
+                    <div id="progress-card" class="card hidden">
+                        <div class="card-header">
+                            <h2>Scan Progress</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="progress-bar">
+                                <div id="progress-fill" class="progress-fill"></div>
+                            </div>
+                            <div class="progress-stats">
+                                <span id="progress-percent">0</span>% Complete
+                            </div>
+                            <div class="scan-details">
+                                <span>IPs Scanned: <strong id="scanned-count">0</strong></span>
+                                <span>Active Devices: <strong id="active-count">0</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Card -->
+                    <div id="results-card" class="card hidden">
+                        <div class="card-header">
+                            <h2>Scan Results</h2>
+                            <div class="results-actions">
+                                <button id="export-csv-btn" class="btn-secondary">Export CSV</button>
+                                <button id="export-json-btn" class="btn-secondary">Export JSON</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="results-summary" class="results-summary" style="margin-bottom: 20px; font-size: 14px; color: #cbd5e1;"></div>
+                            <div class="table-responsive">
+                                <table class="results-table">
+                                    <thead>
+                                        <tr>
+                                            <th>IP Address</th>
+                                            <th>Status</th>
+                                            <th>Response Time</th>
+                                            <th>Hostname</th>
+                                            <th>Operating System</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="results-body">
+                                        <tr><td colspan="5" class="text-center">No results yet. Start a scan to discover devices!</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                <div id="history-tab" class="hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Scan History</h2>
+                        </div>
+                        <div class="card-body">
+                            <div id="history-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div id="analytics-tab" class="hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>System Analytics</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="total-scans">0</div>
+                                    <div class="stat-label">Total Scans Performed</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="total-devices">0</div>
+                                    <div class="stat-label">Devices Discovered</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="blocked-devices">0</div>
+                                    <div class="stat-label">Blocked Devices</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="last-scan">Never</div>
+                                    <div class="stat-label">Last Scan Time</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports & Documentation Tab -->
+                <div id="reports-tab" class="hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Reports & Backup</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-grid" style="gap: 16px; margin-bottom: 22px;">
+                                <div class="report-card">
+                                    <div class="report-title">Summary</div>
+                                    <div class="report-value" id="summary-scans">0</div>
+                                    <div class="report-label">Scans executed</div>
+                                </div>
+                                <div class="report-card">
+                                    <div class="report-title">Devices</div>
+                                    <div class="report-value" id="summary-devices">0</div>
+                                    <div class="report-label">Devices discovered</div>
+                                </div>
+                                <div class="report-card">
+                                    <div class="report-title">Blocked</div>
+                                    <div class="report-value" id="summary-blocked">0</div>
+                                    <div class="report-label">Devices blocked</div>
+                                </div>
+                                <div class="report-card">
+                                    <div class="report-title">Top Targets</div>
+                                    <div class="report-value" id="summary-top">-</div>
+                                    <div class="report-label">Most seen IPs</div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Database Backup</label>
+                                <button class="btn-secondary" onclick="downloadBackup()">Download DB Backup</button>
+                                <span class="form-hint">Download a full SQLite backup for secure storage.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Audit Log & Notifications</h2>
+                        </div>
+                        <div class="card-body">
+                            <div id="notifications-list" class="notifications-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>API Documentation</h2>
+                        </div>
+                        <div class="card-body">
+                            <div id="api-docs" class="api-docs"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="settings-tab" class="hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>System Settings</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>Default Timeout</label>
+                                <input type="number" class="form-input" value="2" min="1" max="10">
+                                <span class="form-hint">Default timeout for network scans</span>
+                            </div>
+                            <div class="form-group">
+                                <label>Auto-refresh Interval</label>
+                                <input type="number" class="form-input" value="30" min="10" max="300">
+                                <span class="form-hint">Auto-refresh interval in seconds</span>
+                            </div>
+                            <button class="btn-primary" style="width: auto; margin-top: 20px;">Save Settings</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Tab -->
+                <div id="users-tab" class="hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>User Management</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Created</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-table-body">
+                                        <!-- Users will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Help & Documentation</h2>
+                    </div>
+                    <div class="card-body">
+                        <details>
+                            <summary>How to find your network range?</summary>
+                            <p><strong>Windows:</strong> Open Command Prompt and type <code>ipconfig</code>. Look for your IPv4 address. If it's 192.168.1.10, your network range is 192.168.1.0/24</p>
+                            <p><strong>Linux/Mac:</strong> Open Terminal and type <code>ifconfig</code> or <code>ip addr</code>.</p>
+                        </details>
+                        <details>
+                            <summary>What do the operating system indicators mean?</summary>
+                            <p><strong>TTL ≤ 64:</strong> Linux, Unix, or macOS systems<br>
+                            <strong>TTL ≤ 128:</strong> Windows operating systems<br>
+                            <strong>TTL ≤ 255:</strong> Network routers or infrastructure devices</p>
+                        </details>
+                        <details>
+                            <summary>Important Legal Notice</summary>
+                            <p><strong>Only scan networks you own or have explicit permission to test.</strong> Unauthorized network scanning may be illegal and violate network policies. This tool is for educational and authorized security testing purposes only.</p>
+                        </details>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Footer -->
+            <footer class="footer">
+                <div class="footer-content">
+                    <div>
+                        <strong style="color: #fbbf24;">NetscanPro</strong> | Advanced Network Security Scanner
+                    </div>
+                    <div class="footer-links">
+                        <a href="#" class="footer-link">Privacy Policy</a>
+                        <a href="#" class="footer-link">Terms of Service</a>
+                        <a href="#" class="footer-link">Support</a>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        let currentScanId = null;
+        let pollingInterval = null;
+        let currentTab = 'scanner';
+
+        function showTab(tab) {
+            currentTab = tab;
+
+            // Hide all tabs
+            document.getElementById('scanner-tab').classList.add('hidden');
+            document.getElementById('history-tab').classList.add('hidden');
+            document.getElementById('analytics-tab').classList.add('hidden');
+            document.getElementById('settings-tab').classList.add('hidden');
+            document.getElementById('users-tab').classList.add('hidden');
+
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('active'));
+
+            // Show selected tab and activate nav
+            if (tab === 'scanner') {
+                document.getElementById('scanner-tab').classList.remove('hidden');
+                document.querySelectorAll('.nav-item')[0].classList.add('active');
+                document.querySelectorAll('.header-btn')[0].classList.add('active');
+            } else if (tab === 'history') {
+                document.getElementById('history-tab').classList.remove('hidden');
+                document.querySelectorAll('.nav-item')[2].classList.add('active');
+                document.querySelectorAll('.header-btn')[2].classList.add('active');
+                loadHistory();
+            } else if (tab === 'analytics') {
+                document.getElementById('analytics-tab').classList.remove('hidden');
+                document.querySelectorAll('.nav-item')[3].classList.add('active');
+                loadStatistics();
+            } else if (tab === 'settings') {
+                document.getElementById('settings-tab').classList.remove('hidden');
+                document.querySelectorAll('.nav-item')[4].classList.add('active');
+            } else if (tab === 'users') {
+                document.getElementById('users-tab').classList.remove('hidden');
+                document.querySelectorAll('.nav-item')[5].classList.add('active');
+                loadUsers();
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('start-scan-btn').addEventListener('click', startScan);
+        document.getElementById('export-csv-btn').addEventListener('click', () => exportResults('csv'));
+        document.getElementById('export-json-btn').addEventListener('click', () => exportResults('json'));
+
+        async function loadStatistics() {
+            try {
+                const res = await fetch('/api/stats');
+                const stats = await res.json();
+                document.getElementById('total-scans').textContent = stats.total_scans || 0;
+                document.getElementById('total-devices').textContent = stats.total_devices || 0;
+                document.getElementById('blocked-devices').textContent = stats.blocked_devices || 0;
+                document.getElementById('last-scan').textContent = stats.last_scan ? new Date(stats.last_scan).toLocaleString() : 'Never';
+            } catch(e) {
+                console.error('Failed to load statistics:', e);
+            }
+        }
+
+        async function startScan() {
+            const target = document.getElementById('target-input').value;
+            const timeout = parseInt(document.getElementById('timeout').value);
+            
+            if (!target) {
+                alert('Please enter a target IP range');
+                return;
+            }
+            
+            const btn = document.getElementById('start-scan-btn');
+            btn.disabled = true;
+            btn.textContent = 'Started Scan...';
+            
+            try {
+                const res = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target, timeout })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    currentScanId = data.scan_id;
+                    showProgressCard();
+                    startPolling();
+                } else {
+                    alert(data.error || 'Failed to start scan');
+                    resetStartButton();
+                }
+            } catch(e) {
+                alert('Error: ' + e.message);
+                resetStartButton();
+            }
+        }
+
+        function resetStartButton() {
+            const btn = document.getElementById('start-scan-btn');
+            btn.disabled = false;
+            btn.textContent = ' Start Network Scan';
+        }
+
+        function showProgressCard() {
+            document.getElementById('progress-card').classList.remove('hidden');
+            document.getElementById('results-card').classList.add('hidden');
+            document.getElementById('progress-fill').style.width = '0%';
+            document.getElementById('progress-percent').textContent = '0';
+            document.getElementById('scanned-count').textContent = '0';
+            document.getElementById('active-count').textContent = '0';
+        }
+
+        function startPolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            
+            pollingInterval = setInterval(async () => {
+                if (!currentScanId) return;
+                
+                try {
+                    const res = await fetch(`/api/scan/${currentScanId}/status`);
+                    const data = await res.json();
+                    
+                    if (data.error) {
+                        stopPolling();
+                        resetStartButton();
+                        return;
+                    }
+                    
+                    if (data.progress !== undefined) {
+                        document.getElementById('progress-fill').style.width = `${data.progress}%`;
+                        document.getElementById('progress-percent').textContent = Math.round(data.progress);
+                    }
+                    
+                    if (data.active_count !== undefined) {
+                        document.getElementById('active-count').textContent = data.active_count;
+                    }
+                    
+                    if (data.status === 'complete') {
+                        stopPolling();
+                        await loadResults(currentScanId);
+                        resetStartButton();
+                        loadStatistics();
+                    }
+                } catch(e) { console.error(e); }
+            }, 1500);
+        }
+
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        async function loadResults(scanId) {
+            try {
+                const res = await fetch(`/api/scan/${scanId}/results`);
+                const data = await res.json();
+                if (res.ok && data.results) {
+                    displayResults(data.results);
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function displayResults(results) {
+            document.getElementById('progress-card').classList.add('hidden');
+            document.getElementById('results-card').classList.remove('hidden');
+            
+            const tbody = document.getElementById('results-body');
+            tbody.innerHTML = '';
+            
+            if (!results || results.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No active devices found</td></tr>';
+                return;
+            }
+            
+            const windowsCount = results.filter(d => d.os && d.os.includes('Windows')).length;
+            const linuxCount = results.filter(d => d.os && d.os.includes('Linux')).length;
+            
+            document.getElementById('results-summary').innerHTML = `
+                <strong>Summary:</strong> Found ${results.length} active device(s) | Windows: ${windowsCount} | Linux/Unix: ${linuxCount}
+            `;
+            
+            results.forEach(device => {
+                const row = tbody.insertRow();
+                row.insertCell(0).innerHTML = `<strong>${device.ip}</strong>`;
+                row.insertCell(1).innerHTML = '<span class="status-active">● Active</span>';
+                row.insertCell(2).textContent = device.response_time || '<1ms';
+                row.insertCell(3).textContent = device.hostname || 'Unknown';
+                row.insertCell(4).textContent = device.os || 'Unknown';
+            });
+        }
+
+        async function exportResults(format) {
+            if (!currentScanId) {
+                alert('No scan results to export');
+                return;
+            }
+            window.open(`/api/export/${currentScanId}?format=${format}`, '_blank');
+        }
+
+        async function loadHistory() {
+            try {
+                const res = await fetch('/api/history');
+                const history = await res.json();
+                const container = document.getElementById('history-list');
+                container.innerHTML = '';
+                
+                if (!history || history.length === 0) {
+                    container.innerHTML = '<div class="text-center">No scan history available</div>';
+                    return;
+                }
+                
+                history.forEach(scan => {
+                    const div = document.createElement('div');
+                    div.style.cssText = 'padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;';
+                    div.innerHTML = `
+                        <div>
+                            <strong> ${scan.target_range}</strong><br>
+                            <small> ${new Date(scan.timestamp).toLocaleString()} |  ${scan.device_count} devices |  ${scan.duration ? scan.duration.toFixed(1) : '?'}s</small>
+                        </div>
+                        <div>
+                            <button class="btn-secondary" onclick="viewHistoryScan('${scan.scan_id}')">View</button>
+                            <button class="btn-secondary" onclick="deleteHistoryScan('${scan.scan_id}')" style="border-color: rgba(239,68,68,0.3);">Delete</button>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        window.viewHistoryScan = async (scanId) => {
+            currentScanId = scanId;
+            showTab('scanner');
+            await loadResults(scanId);
+            document.getElementById('results-card').classList.remove('hidden');
+        };
+
+        window.deleteHistoryScan = async (scanId) => {
+            if (confirm('Delete this scan?')) {
+                await fetch(`/api/history/${scanId}`, { method: 'DELETE' });
+                loadHistory();
+                loadStatistics();
+            }
+        };
+
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/users');
+                const users = await res.json();
+                const tbody = document.getElementById('users-table-body');
+                tbody.innerHTML = '';
+                
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.id}</td>
+                        <td>${user.email}</td>
+                        <td>
+                            <select onchange="changeUserRole(${user.id}, this.value)">
+                                <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                        </td>
+                        <td>${user.created_at}</td>
+                        <td>
+                            <button onclick="deleteUser(${user.id})" class="btn-danger" style="font-size: 12px; padding: 4px 8px;">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch(e) {
+                console.error('Failed to load users:', e);
+            }
+        }
+
+        window.changeUserRole = async (userId, role) => {
+            try {
+                await fetch(`/api/users/${userId}/role`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role })
+                });
+                alert('User role updated');
+            } catch(e) {
+                alert('Failed to update role');
+            }
+        };
+
+        window.deleteUser = async (userId) => {
+            if (confirm('Delete this user?')) {
+                try {
+                    await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+                    loadUsers();
+                } catch(e) {
+                    alert('Failed to delete user');
+                }
+            }
+        };
+
+        // Initial load
+        loadStatistics();
+    </script>
+</body>
+</html>

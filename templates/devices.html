@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetscanPro - Device Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 50%, #1e3a8a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Layout */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, rgba(30, 58, 138, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            border-right: 2px solid #fbbf24;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+            text-align: center;
+        }
+
+        .sidebar-logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 12px;
+            background: linear-gradient(135deg, #1e3a8a, #fbbf24, #dc2626);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 32px rgba(251, 191, 36, 0.3);
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fbbf24;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 10px;
+            color: #94a3b8;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .sidebar-nav {
+            padding: 24px 0;
+        }
+
+        .nav-item {
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+            border-left-color: #fbbf24;
+        }
+
+        .nav-item.active {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            border-left-color: #fbbf24;
+        }
+
+        .nav-icon {
+            font-size: 18px;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(90deg, rgba(30, 58, 138, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            border-bottom: 2px solid #fbbf24;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-content {
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .header-btn {
+            padding: 10px 20px;
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .header-btn:hover {
+            background: rgba(251, 191, 36, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .header-btn.active {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1e3a8a;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-left: 24px;
+            border-left: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: rgba(220, 38, 38, 0.2);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            border-radius: 8px;
+            color: #fca5a5;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(220, 38, 38, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        /* Cards */
+        .card {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            margin-bottom: 24px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .card-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #fbbf24;
+            margin: 0;
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            box-shadow: 0 4px 16px rgba(30, 58, 138, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(30, 58, 138, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            padding: 8px 16px;
+            border-radius: 10px;
+            color: #fbbf24;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(251, 191, 36, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-block {
+            background: rgba(220, 38, 38, 0.2);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            color: #fca5a5;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-block:hover {
+            background: rgba(220, 38, 38, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-unblock {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-unblock:hover {
+            background: rgba(16, 185, 129, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Tables */
+        .device-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 12px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .device-table th {
+            text-align: left;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
+            font-weight: 600;
+            font-size: 14px;
+            color: #fbbf24;
+            border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .device-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(251, 191, 36, 0.1);
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+
+        .device-table tr:hover {
+            background: rgba(251, 191, 36, 0.05);
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-Trusted { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+        .status-Suspicious { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+        .status-Blocked { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        .status-Unknown { background: rgba(255, 255, 255, 0.1); color: #94a3b8; }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(251, 191, 36, 0.2);
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #fbbf24;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        /* Form Elements */
+        select, input {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(251, 191, 36, 0.2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: #e2e8f0;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #fbbf24;
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+        }
+
+        /* Admin Warning */
+        .admin-warning {
+            background: rgba(245, 158, 11, 0.15);
+            border-left: 4px solid #f59e0b;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #fcd34d;
+        }
+
+        .text-center {
+            text-align: center;
+            padding: 48px;
+            color: #94a3b8;
+            font-size: 16px;
+        }
+
+        /* Footer */
+        .footer {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border-top: 2px solid #fbbf24;
+            padding: 24px 32px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-link {
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: #fbbf24;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 240px;
+            }
+            .main-content {
+                margin-left: 240px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                border-right: none;
+                border-bottom: 2px solid #fbbf24;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .header-content {
+                flex-direction: column;
+                gap: 16px;
+            }
+            .content-area {
+                padding: 16px;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 58, 138, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(251, 191, 36, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(251, 191, 36, 0.5);
+        }
+    </style>
+</head>
+<body data-is-admin="{{ 'true' if is_admin else 'false' }}">
+    <div class="app-layout">
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="NetscanPro Logo" style="width: 36px; height: 36px;">
+                </div>
+                <div class="sidebar-title">NetscanPro</div>
+                <div class="sidebar-subtitle">Security Suite</div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item" onclick="window.location.href='/dashboard'">
+                    <i class="nav-icon fas fa-search"></i>
+                    Network Scanner
+                </div>
+                <div class="nav-item active">
+                    <i class="nav-icon fas fa-desktop"></i>
+                    Device Manager
+                </div>
+                <div class="nav-item" onclick="window.location.href='/dashboard'; setTimeout(() => showTab('history'), 100);">
+                    <i class="nav-icon fas fa-chart-bar"></i>
+                    Scan History
+                </div>
+                <div class="nav-item" onclick="window.location.href='/dashboard'; setTimeout(() => showTab('analytics'), 100);">
+                    <i class="nav-icon fas fa-chart-line"></i>
+                    Analytics
+                </div>
+                <div class="nav-item" onclick="window.location.href='/dashboard'; setTimeout(() => showTab('settings'), 100);">
+                    <i class="nav-icon fas fa-cog"></i>
+                    Settings
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-content">
+                    <h1 class="header-title">Device Management Center</h1>
+                    <div class="header-nav">
+                        <a href="/dashboard" class="header-btn">Scanner</a>
+                        <a href="/devices" class="header-btn active">Devices</a>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-avatar">{{ email[0].upper() }}</div>
+                        <span style="color: #e2e8f0; font-size: 14px;">{{ email }}</span>
+                        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <main class="content-area">
+                {% if not is_admin %}
+                <div class="admin-warning">
+                    <strong>⚠️ Administrator Privileges Required</strong><br>
+                    Firewall blocking features are disabled. To enable device blocking, close this application, run Python as Administrator, and restart.
+                </div>
+                {% endif %}
+
+                <!-- Statistics Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalDevices">0</div>
+                        <div class="stat-label">Total Devices Detected</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="blockedCount" style="color:#fca5a5;">0</div>
+                        <div class="stat-label">Currently Blocked</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="trustedCount" style="color:#6ee7b7;">0</div>
+                        <div class="stat-label">Trusted Devices</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="suspiciousCount" style="color:#fcd34d;">0</div>
+                        <div class="stat-label">Suspicious Devices</div>
+                    </div>
+                </div>
+
+                <!-- All Devices Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📋 Device Inventory</h2>
+                        <button class="btn-primary" onclick="refreshDevices()">🔄 Refresh Devices</button>
+                    </div>
+                    <div class="card-body">
+                        <div style="overflow-x: auto;">
+                            <table class="device-table">
+                                <thead>
+                                    <tr>
+                                        <th>IP Address</th>
+                                        <th>Hostname</th>
+                                        <th>Operating System</th>
+                                        <th>Trust Status</th>
+                                        <th>Notes</th>
+                                        <th>Firewall Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="deviceList">
+                                    <tr><td colspan="7" class="text-center">Loading device inventory...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Blocked Devices Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>🚫 Firewall Blocked Devices</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="blockedList"></div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Footer -->
+            <footer class="footer">
+                <div class="footer-content">
+                    <div>
+                        <strong style="color: #fbbf24;">NetscanPro</strong> | Advanced Network Security Scanner | Device Management System
+                    </div>
+                    <div class="footer-links">
+                        <a href="#" class="footer-link">Privacy Policy</a>
+                        <a href="#" class="footer-link">Terms of Service</a>
+                        <a href="#" class="footer-link">Support</a>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        const isAdmin = document.body.dataset.isAdmin === 'true';
+        
+        async function loadDevices() {
+            try {
+                const res = await fetch('/api/devices');
+                const devices = await res.json();
+                displayDevices(devices);
+                updateStats(devices);
+                loadBlockedDevices();
+            } catch(e) {
+                console.error(e);
+                document.getElementById('deviceList').innerHTML = '<tr><td colspan="7" class="text-center">Error loading devices. Run a scan first!</td></tr>';
+            }
+        }
+
+        function displayDevices(devices) {
+            const tbody = document.getElementById('deviceList');
+            tbody.innerHTML = '';
+            
+            if (!devices || devices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">No devices found. Run a network scan first!</td></tr>';
+                return;
+            }
+            
+            devices.forEach(device => {
+                const row = tbody.insertRow();
+                
+                row.insertCell(0).innerHTML = `<strong>${device.ip_address}</strong>`;
+                row.insertCell(1).innerText = device.hostname || 'Unknown';
+                row.insertCell(2).innerText = device.operating_system || 'Unknown';
+                
+                // Status dropdown
+                const statusCell = row.insertCell(3);
+                const select = document.createElement('select');
+                select.id = `status_${device.id}`;
+                ['Unknown', 'Trusted', 'Suspicious', 'Blocked'].forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    if (device.device_status === s) opt.selected = true;
+                    select.appendChild(opt);
+                });
+                select.onchange = () => updateDeviceStatus(device.id, select.value);
+                statusCell.appendChild(select);
+                
+                // Notes input
+                const notesCell = row.insertCell(4);
+                const notesInput = document.createElement('input');
+                notesInput.type = 'text';
+                notesInput.value = device.notes || '';
+                notesInput.placeholder = 'Add note...';
+                notesInput.style.width = '120px';
+                notesInput.onchange = () => updateDeviceNotes(device.id, notesInput.value);
+                notesCell.appendChild(notesInput);
+                
+                // Firewall status
+                const firewallCell = row.insertCell(5);
+                if (device.is_blocked) {
+                    firewallCell.innerHTML = '<i class="fas fa-times-circle" style="color:#fca5a5;"></i> Blocked';
+                } else {
+                    firewallCell.innerHTML = '<i class="fas fa-check-circle" style="color:#6ee7b7;"></i> Allowed';
+                }
+                
+                // Actions
+                const actionsCell = row.insertCell(6);
+                if (isAdmin) {
+                    if (device.is_blocked) {
+                        const unblockBtn = document.createElement('button');
+                        unblockBtn.innerHTML = '<i class="fas fa-unlock"></i> Unblock';
+                        unblockBtn.className = 'btn-unblock';
+                        unblockBtn.onclick = () => unblockDevice(device.id, device.ip_address);
+                        actionsCell.appendChild(unblockBtn);
+                    } else {
+                        const blockBtn = document.createElement('button');
+                        blockBtn.innerHTML = '<i class="fas fa-lock"></i> Block';
+                        blockBtn.className = 'btn-block';
+                        blockBtn.onclick = () => blockDevice(device.id, device.ip_address);
+                        actionsCell.appendChild(blockBtn);
+                    }
+                } else {
+                    actionsCell.textContent = 'View Only';
+                }
+            });
+        }
+
+        async function updateDeviceStatus(deviceId, status) {
+            try {
+                await fetch(`/api/devices/${deviceId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device_status: status })
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        async function updateDeviceNotes(deviceId, notes) {
+            try {
+                await fetch(`/api/devices/${deviceId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notes: notes })
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        async function blockDevice(deviceId, ip) {
+            if (!confirm(`⚠️ BLOCK ${ip}?\n\nThis will create Windows Firewall rules to block all traffic to/from this device.`)) return;
+            
+            try {
+                const res = await fetch(`/api/devices/${deviceId}/block`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`✅ ${ip} blocked successfully!`);
+                    loadDevices();
+                } else {
+                    alert(`❌ Failed: ${data.error}\n\nRun Python as Administrator for firewall features.`);
+                }
+            } catch(e) { alert('Error: ' + e.message); }
+        }
+
+        async function unblockDevice(deviceId, ip) {
+            if (!confirm(`🔓 UNBLOCK ${ip}?\n\nThis will remove Windows Firewall rules.`)) return;
+            
+            try {
+                const res = await fetch(`/api/devices/${deviceId}/unblock`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`✅ ${ip} unblocked successfully!`);
+                    loadDevices();
+                } else {
+                    alert(`❌ Failed: ${data.error}`);
+                }
+            } catch(e) { alert('Error: ' + e.message); }
+        }
+
+        async function loadBlockedDevices() {
+            try {
+                const res = await fetch('/api/devices/blocked');
+                const blocked = await res.json();
+                const container = document.getElementById('blockedList');
+                if (blocked.length === 0) {
+                    container.innerHTML = '<div class="text-center">No devices currently blocked.</div>';
+                    return;
+                }
+                let html = '<table class="device-table"><thead><tr><th>IP</th><th>Hostname</th><th>OS</th><th>Blocked At</th><th>Action</th></tr></thead><tbody>';
+                blocked.forEach(d => {
+                    html += `<tr>
+                        <td><strong>${d.ip_address}</strong></td>
+                        <td>${d.hostname || 'Unknown'}</td>
+                        <td>${d.operating_system || 'Unknown'}</td>
+                        <td>${d.blocked_at ? new Date(d.blocked_at).toLocaleString() : '-'}</td>
+                        <td><button class="btn-unblock" onclick="unblockDevice(${d.id}, '${d.ip_address}')">🔓 Unblock</button></td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch(e) { console.error(e); }
+        }
+
+        function updateStats(devices) {
+            document.getElementById('totalDevices').textContent = devices.length;
+            const blocked = devices.filter(d => d.is_blocked).length;
+            const trusted = devices.filter(d => d.device_status === 'Trusted').length;
+            const suspicious = devices.filter(d => d.device_status === 'Suspicious').length;
+            document.getElementById('blockedCount').textContent = blocked;
+            document.getElementById('trustedCount').textContent = trusted;
+            document.getElementById('suspiciousCount').textContent = suspicious;
+        }
+
+        function refreshDevices() { loadDevices(); }
+        
+        loadDevices();
+    </script>
+</body>
+</html>
